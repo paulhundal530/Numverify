@@ -28,4 +28,15 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Numverify"
+
 include(":app")
+
+// Shared building blocks. Anything usable by more than one feature belongs here.
+include(":common:navigation")
+include(":common:networking")
+
+// Features. Each is an api/impl/ui triad: `api` is the JVM-only contract other modules compile
+// against, `impl` holds implementations nothing else may see, and `ui` renders the screens.
+include(":features:numverify:numverify-api")
+include(":features:numverify:numverify-impl")
+include(":features:numverify:numverify-ui")

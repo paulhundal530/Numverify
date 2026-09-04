@@ -28,7 +28,7 @@ class AndroidApplicationConventionPluginFunctionalTest {
         plugins {
             id("numverify.android.application.compose")
             id("numverify.android.network")
-            id("numverify.android.koin")
+            id("numverify.android.koin.compose")
         }
 
         android {
@@ -46,13 +46,13 @@ class AndroidApplicationConventionPluginFunctionalTest {
     fun setUp() {
         assumeNotNull(TestProject.androidSdkDir)
         project = TestProject(temporaryFolder.root)
-            .settings()
+            .settings(":app")
             .rootBuildScript()
             .gradleProperties(
                 "numverify.apiKey" to "functional-test-key",
                 "numverify.baseUrl" to "https://example.test/api",
             )
-            .appBuildScript(appBuildScript)
+            .androidModule(":app", appBuildScript)
     }
 
     @Test

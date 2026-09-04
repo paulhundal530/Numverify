@@ -5,13 +5,13 @@ import java.util.Properties
 import org.gradle.testkit.runner.GradleRunner
 
 /**
- * A throwaway Android build used to exercise the convention plugins end to end via TestKit.
+ * A throwaway build used to exercise the convention plugins end to end via TestKit.
  *
  * The generated build is wired up exactly like the real one — `pluginManagement { includeBuild }`
- * plus AGP declared `apply false` in the root script — rather than through
+ * plus the plugins declared `apply false` in the root script — rather than through
  * `GradleRunner.withPluginClasspath()`. Injecting the plugin classpath puts AGP on a different
  * class loader than the one the root project sees, which AGP's own version check rejects, and it
- * would not exercise the composition the app build actually uses.
+ * would not exercise the composition the real build actually uses.
  *
  * The `build-logic` sources and the version catalog are copied into a fixture directory that is
  * shared by all tests in the JVM, so the convention plugins are compiled once rather than once per
@@ -20,9 +20,9 @@ import org.gradle.testkit.runner.GradleRunner
  */
 internal class TestProject(val root: File) {
 
-    private val appDir = File(root, "app").apply { mkdirs() }
-
-    fun settings(): TestProject = apply {
+    /** Declares the build and the modules it contains. Call before adding module sources. */
+    fun settings(vararg modulePaths: String): TestProject = apply {
+        val includes = modulePaths.joinToString("\n") { """include("$it")""" }
         File(root, "settings.gradle.kts").writeText(
             """
             pluginManagement {
@@ -46,7 +46,7 @@ internal class TestProject(val root: File) {
                 }
             }
             rootProject.name = "numverify-functional-test"
-            include(":app")
+            $includes
             """.trimIndent()
         )
     }
@@ -68,6 +68,8 @@ internal class TestProject(val root: File) {
             """
             plugins {
                 alias(libs.plugins.android.application) apply false
+                alias(libs.plugins.android.library) apply false
+                alias(libs.plugins.kotlin.jvm) apply false
                 alias(libs.plugins.kotlin.compose) apply false
                 alias(libs.plugins.kotlin.serialization) apply false
             }
@@ -75,16 +77,27 @@ internal class TestProject(val root: File) {
         )
     }
 
-    fun appBuildScript(body: String): TestProject = apply {
-        File(appDir, "build.gradle.kts").writeText(body.trimIndent())
-        File(appDir, "src/main").mkdirs()
-        File(appDir, "src/main/AndroidManifest.xml").writeText(
-            """
-            |<?xml version="1.0" encoding="utf-8"?>
-            |<manifest xmlns:android="http://schemas.android.com/apk/res/android" />
-            """.trimMargin()
-        )
-        File(appDir, "proguard-rules.pro").writeText("")
+    /** An Android module: build script, a minimal manifest, and an empty ProGuard file. */
+    fun androidModule(path: String, buildScript: String, source: String? = null): TestProject =
+        apply {
+            val dir = moduleDir(path)
+            File(dir, "build.gradle.kts").writeText(buildScript.trimIndent())
+            File(dir, "proguard-rules.pro").writeText("")
+            File(dir, "src/main").mkdirs()
+            File(dir, "src/main/AndroidManifest.xml").writeText(
+                """
+                |<?xml version="1.0" encoding="utf-8"?>
+                |<manifest xmlns:android="http://schemas.android.com/apk/res/android" />
+                """.trimMargin()
+            )
+            source?.let { writeSource(dir, it) }
+        }
+
+    /** A Kotlin/JVM module: build script and nothing Android-shaped at all. */
+    fun jvmModule(path: String, buildScript: String, source: String? = null): TestProject = apply {
+        val dir = moduleDir(path)
+        File(dir, "build.gradle.kts").writeText(buildScript.trimIndent())
+        source?.let { writeSource(dir, it) }
     }
 
     fun runner(vararg arguments: String): GradleRunner = GradleRunner.create()
@@ -92,10 +105,19 @@ internal class TestProject(val root: File) {
         .withTestKitDir(testKitDir)
         .withArguments(*arguments, "--stacktrace")
 
-    fun generatedBuildConfig(): String = File(
-        appDir,
+    fun moduleDir(path: String): File =
+        File(root, path.removePrefix(":").replace(':', '/')).apply { mkdirs() }
+
+    fun generatedBuildConfig(module: String = ":app"): String = File(
+        moduleDir(module),
         "build/generated/source/buildConfig/debug/com/example/functional/BuildConfig.java",
     ).readText()
+
+    private fun writeSource(moduleDir: File, source: String) {
+        File(moduleDir, "src/main/kotlin/com/example/functional").apply { mkdirs() }
+            .resolve("Source.kt")
+            .writeText(source.trimIndent())
+    }
 
     companion object {
 

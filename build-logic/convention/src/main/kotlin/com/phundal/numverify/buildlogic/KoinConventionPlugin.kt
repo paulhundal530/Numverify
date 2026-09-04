@@ -4,7 +4,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.dependencies
 
-/** The Koin dependency-injection stack, aligned through the Koin BOM. */
+/** The Koin dependency-injection stack for Android modules, aligned through the Koin BOM. */
 class KoinConventionPlugin : Plugin<Project> {
 
     override fun apply(target: Project): Unit = with(target) {
@@ -12,9 +12,6 @@ class KoinConventionPlugin : Plugin<Project> {
             implementation(platform(libs.koin.bom))
             implementation(libs.koin.core)
             implementation(libs.koin.android)
-            implementation(libs.koin.androidx.compose)
-            implementation(libs.koin.compose)
-            implementation(libs.koin.compose.viewmodel)
         }
     }
 }

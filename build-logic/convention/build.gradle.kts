@@ -33,6 +33,7 @@ dependencies {
     // at runtime by the consuming build, which declares them in its root build script with
     // `apply false`. This avoids leaking two copies of AGP onto the build classpath.
     compileOnly(libs.android.gradlePlugin)
+    compileOnly(libs.kotlin.gradlePlugin)
 
     // Gradle generates the type-safe `libs` accessors (org.gradle.accessors.dm.LibrariesForLibs)
     // for build *scripts* only, so plugin source code normally has to look aliases up by string.
@@ -60,7 +61,24 @@ gradlePlugin {
             id = "numverify.android.application.compose"
             implementationClass =
                 "com.phundal.numverify.buildlogic.AndroidApplicationComposeConventionPlugin"
-            description = "Enables Jetpack Compose and its dependency set."
+            description = "The application module, rendering Compose UI."
+        }
+        register("androidLibrary") {
+            id = "numverify.android.library"
+            implementationClass =
+                "com.phundal.numverify.buildlogic.AndroidLibraryConventionPlugin"
+            description = "Applies the shared Android library configuration."
+        }
+        register("androidLibraryCompose") {
+            id = "numverify.android.library.compose"
+            implementationClass =
+                "com.phundal.numverify.buildlogic.AndroidLibraryComposeConventionPlugin"
+            description = "An Android library module that renders Compose UI."
+        }
+        register("jvmLibrary") {
+            id = "numverify.jvm.library"
+            implementationClass = "com.phundal.numverify.buildlogic.JvmLibraryConventionPlugin"
+            description = "A plain Kotlin/JVM module, used by the feature `api` contracts."
         }
         register("kotlinSerialization") {
             id = "numverify.kotlin.serialization"
@@ -77,6 +95,11 @@ gradlePlugin {
             id = "numverify.android.koin"
             implementationClass = "com.phundal.numverify.buildlogic.KoinConventionPlugin"
             description = "Adds the Koin dependency injection stack."
+        }
+        register("androidKoinCompose") {
+            id = "numverify.android.koin.compose"
+            implementationClass = "com.phundal.numverify.buildlogic.KoinComposeConventionPlugin"
+            description = "Adds the Compose-aware Koin integration."
         }
     }
 }

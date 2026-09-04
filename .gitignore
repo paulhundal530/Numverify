@@ -8,7 +8,9 @@
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
 .DS_Store
-/build
+# Gradle build directories, at the root and in every module.
+build/
+.kotlin/
 /captures
 .externalNativeBuild
 .cxx

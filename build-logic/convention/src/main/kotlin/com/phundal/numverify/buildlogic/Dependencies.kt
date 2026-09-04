@@ -13,6 +13,9 @@ import org.gradle.api.provider.ProviderConvertible
  * usual DSL inside a convention plugin's `dependencies { }` block.
  */
 
+internal fun DependencyHandler.api(dependency: Any): Unit =
+    addDependency("api", dependency)
+
 internal fun DependencyHandler.implementation(dependency: Any): Unit =
     addDependency("implementation", dependency)
 

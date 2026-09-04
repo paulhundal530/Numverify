@@ -3,7 +3,6 @@ package com.phundal.numverify.buildlogic
 import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.api.variant.BuildConfigField
-import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
@@ -28,12 +27,11 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
         }
 
         extensions.configure<ApplicationExtension> {
-            compileSdk = AndroidSdk.COMPILE_SDK
+            configureAndroidCommon()
 
             defaultConfig {
-                minSdk = AndroidSdk.MIN_SDK
-                targetSdk = AndroidSdk.TARGET_SDK
-                testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+                targetSdk = BuildDefaults.TARGET_SDK
+                testInstrumentationRunner = ANDROID_TEST_RUNNER
             }
 
             buildTypes {
@@ -46,14 +44,9 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                 }
             }
 
-            compileOptions {
-                sourceCompatibility = JavaVersion.VERSION_11
-                targetCompatibility = JavaVersion.VERSION_11
-            }
-
-            buildFeatures {
-                buildConfig = true
-            }
+            // Only the application module gets a BuildConfig; library modules opt out so the
+            // generated class does not multiply across the graph.
+            buildFeatures.buildConfig = true
         }
 
         configureBuildConfigFields(numverify)
@@ -61,6 +54,9 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
         dependencies {
             implementation(libs.androidx.core.ktx)
             implementation(libs.androidx.lifecycle.runtime.ktx)
+            implementation(platform(libs.kotlinx.coroutines.bom))
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.coroutines.android)
 
             testImplementation(libs.junit)
             androidTestImplementation(libs.androidx.junit)
@@ -110,3 +106,5 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
         }
     }
 }
+
+internal const val ANDROID_TEST_RUNNER = "androidx.test.runner.AndroidJUnitRunner"

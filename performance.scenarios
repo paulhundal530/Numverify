@@ -1,0 +1,34 @@
+# gradle-profiler scenarios for Numverify
+# Run:  gradle-profiler --benchmark --project-dir . --scenario-file performance.scenarios
+
+scenario-groups {
+      nightly = ["assemble_clean", "assemble_incremental", "configuration_only"]
+      quick   = ["assemble_incremental"]
+      config  = ["configuration_only"]
+  }
+
+configuration_only {
+    title = "configuration only (no task execution)"
+    tasks = ["assembleDebug"]
+    # --dry-run makes Gradle configure the build and print the task graph
+    # without running any task actions, so the measurement is configuration time only.
+    gradle-args = ["--dry-run"]
+    warm-ups = 3
+    iterations = 5
+}
+
+assemble_clean {
+    title = "assemble (clean build)"
+    tasks = ["assembleDebug"]
+    cleanup-tasks = ["clean"]
+    warm-ups = 1
+    iterations = 2
+}
+
+assemble_incremental {
+    title = "assemble (incremental, ABI change)"
+    tasks = ["assembleDebug"]
+    apply-abi-change-to = "app/src/main/java/com/phundal/numverify/data/NumberValidationRepository.kt"
+    warm-ups = 2
+    iterations = 3
+}

@@ -1,0 +1,88 @@
+plugins {
+    `kotlin-dsl`
+}
+
+group = "com.phundal.numverify.buildlogic"
+
+// The daemon runs on JDK 21 (see gradle/gradle-daemon-jvm.properties), so compiling the
+// convention plugins against the same toolchain keeps the produced classes loadable.
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+// A separate source set for TestKit tests keeps the fast, pure unit tests in `test` from being
+// slowed down by full Gradle builds.
+val functionalTest: SourceSet = sourceSets.create("functionalTest")
+
+configurations.named(functionalTest.implementationConfigurationName) {
+    extendsFrom(configurations.testImplementation.get())
+}
+configurations.named(functionalTest.runtimeOnlyConfigurationName) {
+    extendsFrom(configurations.testRuntimeOnly.get())
+}
+
+dependencies {
+    // The Gradle plugins these convention plugins configure are `compileOnly`: they are supplied
+    // at runtime by the consuming build, which declares them in its root build script with
+    // `apply false`. This avoids leaking two copies of AGP onto the build classpath.
+    compileOnly(libs.android.gradlePlugin)
+
+    testImplementation(libs.junit)
+
+    "functionalTestImplementation"(gradleTestKit())
+}
+
+gradlePlugin {
+    plugins {
+        register("androidApplication") {
+            id = "numverify.android.application"
+            implementationClass =
+                "com.phundal.numverify.buildlogic.AndroidApplicationConventionPlugin"
+            description = "Applies the shared Android application configuration."
+        }
+        register("androidApplicationCompose") {
+            id = "numverify.android.application.compose"
+            implementationClass =
+                "com.phundal.numverify.buildlogic.AndroidApplicationComposeConventionPlugin"
+            description = "Enables Jetpack Compose and its dependency set."
+        }
+        register("kotlinSerialization") {
+            id = "numverify.kotlin.serialization"
+            implementationClass =
+                "com.phundal.numverify.buildlogic.KotlinSerializationConventionPlugin"
+            description = "Applies kotlinx.serialization and its JSON runtime."
+        }
+        register("androidNetwork") {
+            id = "numverify.android.network"
+            implementationClass = "com.phundal.numverify.buildlogic.NetworkConventionPlugin"
+            description = "Adds the Retrofit/OkHttp networking stack."
+        }
+        register("androidKoin") {
+            id = "numverify.android.koin"
+            implementationClass = "com.phundal.numverify.buildlogic.KoinConventionPlugin"
+            description = "Adds the Koin dependency injection stack."
+        }
+    }
+}
+
+val functionalTestTask = tasks.register<Test>("functionalTest") {
+    description = "Runs the TestKit tests for the convention plugins."
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    testClassesDirs = functionalTest.output.classesDirs
+    classpath = functionalTest.runtimeClasspath
+    useJUnit()
+    // TestKit gets its own Gradle home; parking it under the real one keeps downloaded
+    // dependencies between runs instead of re-fetching them into a temporary directory.
+    systemProperty("numverify.testkit.gradleUserHome", gradle.gradleUserHomeDir.absolutePath)
+    // The generated test builds reuse the repository's real version catalog.
+    systemProperty(
+        "numverify.versionCatalog",
+        layout.settingsDirectory.file("../gradle/libs.versions.toml").asFile.canonicalPath,
+    )
+}
+
+tasks.named("check") {
+    dependsOn(functionalTestTask)
+}

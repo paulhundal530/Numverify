@@ -1,4 +1,9 @@
 pluginManagement {
+    // The convention plugins that configure this build live in their own build. Including it
+    // here makes `numverify.*` plugin ids resolvable from every project without a
+    // `buildscript { classpath(...) }` block.
+    includeBuild("build-logic")
+
     repositories {
         google {
             content {

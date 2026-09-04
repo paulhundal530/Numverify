@@ -59,12 +59,12 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
         configureBuildConfigFields(numverify)
 
         dependencies {
-            add("implementation", libs.library("androidx-core-ktx"))
-            add("implementation", libs.library("androidx-lifecycle-runtime-ktx"))
+            implementation(libs.androidx.core.ktx)
+            implementation(libs.androidx.lifecycle.runtime.ktx)
 
-            add("testImplementation", libs.library("junit"))
-            add("androidTestImplementation", libs.library("androidx-junit"))
-            add("androidTestImplementation", libs.library("androidx-espresso-core"))
+            testImplementation(libs.junit)
+            androidTestImplementation(libs.androidx.junit)
+            androidTestImplementation(libs.androidx.espresso.core)
         }
     }
 

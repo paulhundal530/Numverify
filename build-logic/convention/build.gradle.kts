@@ -4,6 +4,11 @@ plugins {
 
 group = "com.phundal.numverify.buildlogic"
 
+// Location of the classes Gradle generated for this build's `libs` catalog. `libs` here is an
+// instance of a decorated subclass, so the accessor class itself is the superclass.
+val versionCatalogAccessors: File =
+    File(libs.javaClass.superclass.protectionDomain.codeSource.location.toURI())
+
 // The daemon runs on JDK 21 (see gradle/gradle-daemon-jvm.properties), so compiling the
 // convention plugins against the same toolchain keeps the produced classes loadable.
 java {
@@ -28,6 +33,15 @@ dependencies {
     // at runtime by the consuming build, which declares them in its root build script with
     // `apply false`. This avoids leaking two copies of AGP onto the build classpath.
     compileOnly(libs.android.gradlePlugin)
+
+    // Gradle generates the type-safe `libs` accessors (org.gradle.accessors.dm.LibrariesForLibs)
+    // for build *scripts* only, so plugin source code normally has to look aliases up by string.
+    // Compiling against the generated classes gives the convention plugins the same
+    // `libs.androidx.core.ktx` accessors a build script gets, so a typo or a removed alias is a
+    // compile error here rather than a failure in the app build. `compileOnly` is deliberate: the
+    // consuming build generates the very same class from the very same TOML (build-logic reads
+    // ../gradle/libs.versions.toml) and supplies it at runtime.
+    compileOnly(files(versionCatalogAccessors))
 
     testImplementation(libs.junit)
 
@@ -86,3 +100,4 @@ val functionalTestTask = tasks.register<Test>("functionalTest") {
 tasks.named("check") {
     dependsOn(functionalTestTask)
 }
+

@@ -25,20 +25,21 @@ class AndroidApplicationComposeConventionPlugin : Plugin<Project> {
             }
         }
 
-        val bom = libs.library("androidx-compose-bom")
         dependencies {
-            add("implementation", platform(bom))
-            add("implementation", libs.library("androidx-activity-compose"))
-            add("implementation", libs.library("androidx-compose-ui"))
-            add("implementation", libs.library("androidx-compose-ui-graphics"))
-            add("implementation", libs.library("androidx-compose-ui-tooling-preview"))
-            add("implementation", libs.library("androidx-compose-material3"))
+            val bom = platform(libs.androidx.compose.bom)
 
-            add("debugImplementation", libs.library("androidx-compose-ui-tooling"))
-            add("debugImplementation", libs.library("androidx-compose-ui-test-manifest"))
+            implementation(bom)
+            implementation(libs.androidx.activity.compose)
+            implementation(libs.androidx.compose.ui)
+            implementation(libs.androidx.compose.ui.graphics)
+            implementation(libs.androidx.compose.ui.tooling.preview)
+            implementation(libs.androidx.compose.material3)
 
-            add("androidTestImplementation", platform(bom))
-            add("androidTestImplementation", libs.library("androidx-compose-ui-test-junit4"))
+            debugImplementation(libs.androidx.compose.ui.tooling)
+            debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+            androidTestImplementation(bom)
+            androidTestImplementation(libs.androidx.compose.ui.test.junit4)
         }
     }
 }

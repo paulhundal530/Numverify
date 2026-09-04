@@ -14,11 +14,11 @@ class NetworkConventionPlugin : Plugin<Project> {
         pluginManager.apply(KotlinSerializationConventionPlugin::class.java)
 
         dependencies {
-            add("implementation", platform(libs.library("okhttp-bom")))
-            add("implementation", libs.library("okhttp"))
-            add("implementation", libs.library("logging-interceptor"))
-            add("implementation", libs.library("retrofit"))
-            add("implementation", libs.library("retrofit2-kotlinx-serialization-converter"))
+            implementation(platform(libs.okhttp.bom))
+            implementation(libs.okhttp)
+            implementation(libs.logging.interceptor)
+            implementation(libs.retrofit)
+            implementation(libs.retrofit2.kotlinx.serialization.converter)
         }
     }
 }

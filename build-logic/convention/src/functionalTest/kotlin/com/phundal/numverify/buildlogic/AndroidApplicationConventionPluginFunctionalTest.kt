@@ -65,6 +65,33 @@ class AndroidApplicationConventionPluginFunctionalTest {
         )
     }
 
+    /**
+     * The convention plugins declare their dependencies through the generated `libs` accessors, so
+     * this both checks that each stack is actually contributed and that the accessors resolve to
+     * real modules rather than compiling against a stale catalog.
+     */
+    @Test
+    fun `contributes the compose, network and koin stacks`() {
+        val result = project
+            .runner(":app:dependencies", "--configuration", "debugRuntimeClasspath")
+            .build()
+
+        listOf(
+            "androidx.compose.material3:material3",
+            "androidx.activity:activity-compose",
+            "com.squareup.retrofit2:retrofit",
+            "com.squareup.okhttp3:logging-interceptor",
+            "com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter",
+            "org.jetbrains.kotlinx:kotlinx-serialization-json",
+            "io.insert-koin:koin-androidx-compose",
+        ).forEach { module ->
+            assertTrue(
+                "expected `$module` on the runtime classpath:\n${result.output}",
+                result.output.contains(module),
+            )
+        }
+    }
+
     @Test
     fun `generates build config fields from gradle properties`() {
         val result = project.runner(":app:generateDebugBuildConfig").build()

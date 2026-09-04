@@ -9,12 +9,12 @@ class KoinConventionPlugin : Plugin<Project> {
 
     override fun apply(target: Project): Unit = with(target) {
         dependencies {
-            add("implementation", platform(libs.library("koin-bom")))
-            add("implementation", libs.library("koin-core"))
-            add("implementation", libs.library("koin-android"))
-            add("implementation", libs.library("koin-androidx-compose"))
-            add("implementation", libs.library("koin-compose"))
-            add("implementation", libs.library("koin-compose-viewmodel"))
+            implementation(platform(libs.koin.bom))
+            implementation(libs.koin.core)
+            implementation(libs.koin.android)
+            implementation(libs.koin.androidx.compose)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
         }
     }
 }

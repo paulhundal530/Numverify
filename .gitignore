@@ -1,6 +1,10 @@
 *.iml
 .gradle
 /local.properties
+/.idea/compiler.xml
+/.idea/gradle.xml
+/.idea/misc.xml
+/.idea/kotlinc.xml
 /.idea/caches
 /.idea/libraries
 /.idea/modules.xml
@@ -15,3 +19,7 @@ build/
 .externalNativeBuild
 .cxx
 local.properties
+
+# gradle-profiler's default isolated Gradle home, created in the project root by
+# ./benchmark-buildlogic.sh unless it is run with --real-home.
+/gradle-user-home/

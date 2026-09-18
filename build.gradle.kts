@@ -18,8 +18,15 @@ plugins {
 
 // `build-logic` is a separate build, so its tests are not picked up by anything in this build.
 // This gives CI (and `./gradlew checkBuildLogic` locally) a single entry point for them.
-tasks.register("checkBuildLogic") {
-    group = LifecycleBasePlugin.VERIFICATION_GROUP
-    description = "Runs the unit and TestKit tests for the convention plugins in build-logic."
-    dependsOn(gradle.includedBuild("build-logic").task(":convention:check"))
+//
+// Only registrable when `build-logic` is actually part of this build. With
+// `numverify.buildLogic.source=maven` (see settings.gradle.kts) it is not, and
+// `gradle.includedBuild("build-logic")` would fail the whole configuration phase; run its tests
+// from the build itself with `./gradlew -p build-logic check` in that mode.
+if (gradle.includedBuilds.any { it.name == "build-logic" }) {
+    tasks.register("checkBuildLogic") {
+        group = LifecycleBasePlugin.VERIFICATION_GROUP
+        description = "Runs the unit and TestKit tests for the convention plugins in build-logic."
+        dependsOn(gradle.includedBuild("build-logic").task(":convention:check"))
+    }
 }

@@ -1,3 +1,5 @@
+import org.gradle.kotlin.dsl.debugImplementation
+
 plugins {
     id("numverify.android.application.compose")
     id("numverify.android.koin.compose")
@@ -22,6 +24,8 @@ dependencies {
     implementation(project(":features:numverify:numverify-api"))
     implementation(project(":features:numverify:numverify-impl"))
     implementation(project(":features:numverify:numverify-ui"))
+
+    debugImplementation(libs.leakcanary.android)
 }
 
 // `apiKey` and `baseUrl` default to the `numverify.apiKey` / `numverify.baseUrl` Gradle

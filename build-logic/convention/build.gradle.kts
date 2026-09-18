@@ -1,8 +1,32 @@
+import java.io.StringReader
+import java.util.Properties
+
 plugins {
     `kotlin-dsl`
+    // `kotlin-dsl` already brings in `java-gradle-plugin`, so applying `maven-publish` is enough to
+    // get a publication for the jar plus a marker publication per registered plugin id — no
+    // `publishing { }` block needed. `./gradlew -p build-logic publishToMavenLocal` installs them,
+    // which is what `numverify.buildLogic.source=maven` in the main build consumes.
+    `maven-publish`
 }
 
 group = "com.phundal.numverify.buildlogic"
+
+// The version lives in the *main* build's gradle.properties, right next to the
+// `numverify.buildLogic.source` switch that selects between resolving these plugins from here and
+// resolving them from mavenLocal, so the published coordinate and the consumed one cannot drift.
+// It is read from the file rather than as a Gradle property because publishing runs this as a
+// standalone build (`./gradlew -p build-logic ...`), which does not see the main build's
+// properties. Going through `providers.fileContents` keeps it a tracked configuration input; the
+// same "reach up one directory" trick is how settings.gradle.kts finds the version catalog.
+version = providers.fileContents(
+    layout.settingsDirectory.dir("..").file("gradle.properties"),
+).asText.map { text ->
+    Properties()
+        .apply { load(StringReader(text)) }
+        .getProperty("numverify.buildLogic.version")
+        ?: error("numverify.buildLogic.version is missing from the root gradle.properties")
+}.get()
 
 // Location of the classes Gradle generated for this build's `libs` catalog. `libs` here is an
 // instance of a decorated subclass, so the accessor class itself is the superclass.

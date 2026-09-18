@@ -1,10 +1,25 @@
 # gradle-profiler scenarios for Numverify
-# Run:  gradle-profiler --benchmark --project-dir . --scenario-file performance.scenarios
+#
+# Run everything:  gradle-profiler --benchmark --project-dir . --scenario-file performance.scenarios
+# Run one group:   gradle-profiler --benchmark --project-dir . --scenario-file performance.scenarios --group quick
+#
+# The `buildlogic` group is an A/B comparison of the two ways the `numverify.*` convention plugins
+# can be resolved (see `numverify.buildLogic.source` in gradle.properties). Drive it through
+# `./benchmark-buildlogic.sh`, which publishes the plugins to mavenLocal first — the `_mvn`
+# scenarios measure a stale jar otherwise.
+#
+# Two conventions in that group exist to keep benchmark.csv readable, and are worth keeping if you
+# add to it. gradle-profiler writes the CSV unquoted, so a comma in a `title` splits the header
+# row into the wrong number of columns; and its wide format uses one shared row per build index
+# across every scenario, so a scenario with fewer warm-ups than its neighbours has its first
+# measured builds land under rows labelled "warm-up build". Hence: no commas in titles, and the
+# same `warm-ups` count throughout the group.
 
 scenario-groups {
-      nightly = ["assemble_clean", "assemble_incremental", "configuration_only"]
-      quick   = ["assemble_incremental"]
-      config  = ["configuration_only"]
+      nightly    = ["assemble_clean", "assemble_incremental", "configuration_only"]
+      quick      = ["assemble_incremental"]
+      config     = ["configuration_only"]
+      buildlogic = ["cfg_ib", "cfg_mvn", "cfgcold_ib", "cfgcold_mvn", "abi_ib", "abi_mvn"]
   }
 
 configuration_only {
@@ -28,7 +43,98 @@ assemble_clean {
 assemble_incremental {
     title = "assemble (incremental, ABI change)"
     tasks = ["assembleDebug"]
-    apply-abi-change-to = "app/src/main/java/com/phundal/numverify/data/NumberValidationRepository.kt"
+    apply-abi-change-to = "features/numverify/numverify-api/src/main/kotlin/com/phundal/numverify/feature/numverify/api/NumberValidationRepository.kt"
     warm-ups = 2
     iterations = 3
+}
+
+# --- build-logic resolution: included build vs. mavenLocal ------------------------------------
+#
+# Three pairs. Within a pair the only difference is the `-Pnumverify.buildLogic.source` argument,
+# so any gap between the two series is the cost of having `build-logic` in the build.
+
+# The headline pair. Configuration only, with the configuration cache deliberately thrown away
+# before every measured build so each iteration really does configure. `build-logic` is left up to
+# date, so this isolates the recurring cost of configuring and up-to-date-checking that build —
+# what you pay on every configuration-cache miss.
+cfg_ib {
+    title = "config CC-miss - included build"
+    tasks = ["assembleDebug"]
+    gradle-args = ["--dry-run", "-Pnumverify.buildLogic.source=includedBuild"]
+    clear-configuration-cache-state-before = BUILD
+    warm-ups = 3
+    iterations = 10
+}
+
+cfg_mvn {
+    title = "config CC-miss - mavenLocal"
+    tasks = ["assembleDebug"]
+    gradle-args = ["--dry-run", "-Pnumverify.buildLogic.source=maven"]
+    clear-configuration-cache-state-before = BUILD
+    warm-ups = 3
+    iterations = 10
+}
+
+# The worst case for the included build: its output directory is wiped before every measured
+# build, so the convention plugins are recompiled from source each time. That is what a fresh
+# clone pays, and what you pay again after every edit to build-logic. Expect the widest gap here.
+#
+# `daemon = cold` is not decoration — gradle-profiler only permits mutators that run between
+# builds (`schedule = BUILD`, below) when the daemon is not being reused. It costs JVM startup on
+# every iteration, but both halves of the pair pay it equally, so the gap between them is still
+# just the build-logic cost.
+cfgcold_ib {
+    title = "config CC-miss + build-logic recompiled - included build"
+    tasks = ["assembleDebug"]
+    gradle-args = ["--dry-run", "-Pnumverify.buildLogic.source=includedBuild"]
+    clear-configuration-cache-state-before = BUILD
+    clear-dir = {
+        target = "build-logic/convention/build"
+        schedule = BUILD
+    }
+    daemon = cold
+    # Same warm-up count as every other scenario in the `buildlogic` group — see the note above
+    # the group in the header.
+    warm-ups = 3
+    iterations = 5
+}
+
+# The baseline for cfgcold_ib: same cold daemon, same wiped directory — which changes nothing
+# here, because the build that would have used it never runs. Kept so the comparison comes from
+# the same profiler run, on the same machine, in the same thermal state.
+cfgcold_mvn {
+    title = "config CC-miss + build-logic recompiled - mavenLocal (unaffected)"
+    tasks = ["assembleDebug"]
+    gradle-args = ["--dry-run", "-Pnumverify.buildLogic.source=maven"]
+    clear-configuration-cache-state-before = BUILD
+    clear-dir = {
+        target = "build-logic/convention/build"
+        schedule = BUILD
+    }
+    daemon = cold
+    # Same warm-up count as every other scenario in the `buildlogic` group — see the note above
+    # the group in the header.
+    warm-ups = 3
+    iterations = 5
+}
+
+# The control. A real incremental build with the configuration cache left on: on a cache hit
+# Gradle skips configuration entirely, `build-logic` included, so these two should land at parity.
+# If they don't, something other than plugin resolution is moving and the pairs above are suspect.
+abi_ib {
+    title = "assemble ABI-change CC-hit - included build"
+    tasks = ["assembleDebug"]
+    gradle-args = ["-Pnumverify.buildLogic.source=includedBuild"]
+    apply-abi-change-to = "features/numverify/numverify-api/src/main/kotlin/com/phundal/numverify/feature/numverify/api/NumberValidationRepository.kt"
+    warm-ups = 3
+    iterations = 5
+}
+
+abi_mvn {
+    title = "assemble ABI-change CC-hit - mavenLocal"
+    tasks = ["assembleDebug"]
+    gradle-args = ["-Pnumverify.buildLogic.source=maven"]
+    apply-abi-change-to = "features/numverify/numverify-api/src/main/kotlin/com/phundal/numverify/feature/numverify/api/NumberValidationRepository.kt"
+    warm-ups = 3
+    iterations = 5
 }
